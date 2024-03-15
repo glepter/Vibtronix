@@ -30,7 +30,9 @@ class UI:
         #Crea variable interna para Objeto Serial. Crea variable para el root de TKInter y asigna titulo.
         self.ser = ser
         self.sampleCount = 100
-        self.classID = 0
+        self.classID = ["Alto", "Medio", "Bajo", "Auto"]
+        self.header = ['Instance', 'Class', 'Timestamp', 'Acc X', 'Acc Y', 'Acc Z', 'Gyro X', 'Gyro Y', 'Gyro Z']
+        self.sensorDat = [[],[],[],[],[],[]]
         self.serverAddr = '192.168.100.61'
         self.serverPort = 12345
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -40,7 +42,7 @@ class UI:
 
         self.master = master
         self.master.title("Interfaz")
-        self.master.geometry('980x550')
+        self.master.geometry('1152x550')
         #Crea un contenedor para la pagina principal (Frame).
         self.First = Frame(self.master)
         
@@ -49,9 +51,9 @@ class UI:
         Accel = LabelFrame(self.First, text="Acelerometro", bd=2)
         Accel.grid(row=0, column=0, columnspan=5, padx=10, pady=(5,25), ipadx=2, ipady=2)
         #Crea figura para contener las graficas.
-        self.fig = Figure(dpi= 50, facecolor='Black', constrained_layout=True)
+        self.fig1 = Figure(dpi= 50, facecolor='Black', constrained_layout=True)
         #Crea y configura un area de dibujo de TKinter para contener la figura.       
-        self.cs1 = FigureCanvasTkAgg(self.fig, master=Accel)
+        self.cs1 = FigureCanvasTkAgg(self.fig1, master=Accel)
         self.cs1.draw()
         self.cs1.get_tk_widget().grid(row=0, column=1, rowspan=4, sticky=E)
         #Crea y configura Labels para contener el valor actual.
@@ -75,9 +77,9 @@ class UI:
         Gyro = LabelFrame(self.First, text="Giroscopio", bd=2)
         Gyro.grid(row=0, column=6, columnspan=5, padx=10, pady=(5,25), ipadx=2, ipady=2)
         #Crea figura para contener las graficas.
-        self.fig = Figure(dpi= 50, facecolor='Black', constrained_layout=True)
+        self.fig2 = Figure(dpi= 50, facecolor='Black', constrained_layout=True)
         #Crea y configura un area de dibujo de TKinter para contener la figura.       
-        self.cs2 = FigureCanvasTkAgg(self.fig, master=Gyro)
+        self.cs2 = FigureCanvasTkAgg(self.fig2, master=Gyro)
         self.cs2.draw()
         self.cs2.get_tk_widget().grid(row=0, column=1, rowspan=4, sticky=E)
         #Crea y configura Labels para contener el valor actual.
@@ -101,22 +103,18 @@ class UI:
 
 
 
-
-
-
-
-
-
-
-
-
         #Crea y define texto y dropdown menu del contador de minutos.
-        lsample = Label(self.First, text="Numero de Muestras", highlightthickness=0)
+        lsample = Label(self.First, text="Numero de Muestras",font=Font(family='Helvetica', size=13, weight='normal'), highlightthickness=0)
         lsample.grid(row=2, column=0)
-        self.spin = Spinbox(self.First,  from_= 100, to = 1000, wrap = False, width=5, highlightthickness=0, border=0, font=Font(family='Helvetica', size=9, weight='normal'))   
+        self.spin = Spinbox(self.First,  from_= 100, to = 1000, increment = 10, wrap = True, width=5, highlightthickness=0, border=0, font=Font(family='Helvetica', size=13, weight='normal'))   
         self.spin.delete(0,"end")
         self.spin.insert(0,100)
         self.spin.grid(row=2,column=1, sticky=W)
+
+        lclassid = Label(self.First, text="Clase: ",font=Font(family='Helvetica', size=13, weight='normal'), highlightthickness=0)
+        lclassid.grid(row=3, column=0)
+        self.spin2 = Spinbox(self.First, values=self.classID, wrap = True, width=5, highlightthickness=0, border=0, font=Font(family='Helvetica', size=13, weight='normal'))   
+        self.spin2.grid(row=3,column=1, sticky=W)
 
         #Crea y define Botones de funciones y manda llamar sus respectivas subrutinas.
         self.breport = Button(self.First, text="Reporte", width=10, height=2, command=self.report)
@@ -135,7 +133,7 @@ class UI:
         #Crea y define TopLevel y asigna a Root (Objeto), define en una estructura de grid.
         self.Second = Toplevel(self.master)
         #Crea Label Frame para contener parte de las opciones.
-        frame = LabelFrame(self.Second, text="Parametros de reporte")
+        frame = LabelFrame(self.Second, text="Reporte")
         frame.grid(row=0, column=0, columnspan=3, padx=15, pady=10)
         #Crea y define el texto de las opciones.
         flab = Label(frame, text="Desde: ")
@@ -218,18 +216,34 @@ class UI:
             print(f"Received from {client_address}: {data.decode('utf-8')}")
             info=str(data.decode('utf-8')).replace(')','')
             info=info.replace('(','')
+            #print(info)
             info=info.split(',')
-            aux=[x, d.strftime("%H:%M:%S")]
-            print(aux+info)
-            
+            aux=[x,self.spin2.get(), d.strftime("%H:%M:%S")]
+            print(aux+info)            
             list.append(aux+info)
+
+            for i in range(len(self.sensorDat)):
+                self.sensorDat[i].append(info[i])
+            
+            #print(info[1],info[4])
+            self.Accelx['text'] = str(info[0])+"*"
+            self.Accely['text'] = str(info[1])+"*"
+            self.Accelz['text'] = str(info[2])+"*"
+            self.Gyrox['text'] = str(info[3])+"*"
+            self.Gyroy['text'] = str(info[4])+"*"
+            self.Gyroz['text'] = str(info[5])+"*"
+
+
+
+
             x=x+1
             if x>int(self.spin.get()):
+                self.updateGraph()
                 break
         self.server_socket.close()
         with open(file_name, mode='w', newline='') as file:
             writer = csv.writer(file)
-            writer.writerow(['Instance','Timestamp', 'Acc X', 'Acc Y', 'Acc Z', 'Gyro X', 'Gyro Y', 'Gyro Z']) 
+            writer.writerow(self.header) 
             writer.writerows(list) 
         print(f"CSV file '{file_name}' has been created.")
         
@@ -329,32 +343,43 @@ class UI:
     #Funcion para comenzar Hilo de espera.
     def threading(self):
         #Crea Hilo con la funcion esperando el valor del spinbox por una constante, inicia el hilo.
+        self.fig1.clf()
+        self.cs1.draw()
+        self.fig2.clf()
+        self.cs2.draw()
         self.t1=Thread(target=self.readFile, daemon=True)
         self.t1.start()
 
 
     #Funcion para actualizar datos.
     def updateGraph(self):
-        #Lee los ultimos 10 valores en cada columna de la hoja de excel (comprehension list).
-        self.sensor1 = []
-        self.sensor2 = []
-        self.sensor3 = []
+            
+
         #Limpia el contenedor de las graficas.
-        self.fig.clf()
+        self.fig1.clf()
         #Agrega las graficas al contenedor, las dibuja y configura en la pantalla.
-        self.s1 = self.fig.add_subplot(4, 1, 1, frameon=False).plot([x for x in range(len(self.sensor1))], self.sensor1, 'b')
-        self.s2 = self.fig.add_subplot(4, 1, 2, frameon=False).plot([x for x in range(len(self.sensor2))], self.sensor2, 'r')
-        self.s3 = self.fig.add_subplot(4, 1, 3, frameon=False).plot([x for x in range(len(self.sensor3))], self.sensor3, 'g')
+        self.s1 = self.fig1.add_subplot(4, 1, 1, frameon=False).plot([x for x in range(len(self.sensorDat[0]))], self.sensorDat[0], 'b')
+        self.s2 = self.fig1.add_subplot(4, 1, 2, frameon=False).plot([x for x in range(len(self.sensorDat[1]))], self.sensorDat[1], 'r')
+        self.s3 = self.fig1.add_subplot(4, 1, 3, frameon=False).plot([x for x in range(len(self.sensorDat[2]))], self.sensorDat[2], 'g')
         self.cs1.draw()
         self.cs1.get_tk_widget().grid(row=0, column=1, rowspan=4, sticky=E)
         #Actualiza valores en Labels.    
-        self.Accelx['text'] = str(self.sensor1[-1])+"*"
-        self.Accely['text'] = str(self.sensor2[-1])+"*"
-        self.Accelz['text'] = str(self.sensor3[-1])+"*"
+        self.Accelx['text'] = str(self.sensorDat[0][-1])+"*"
+        self.Accely['text'] = str(self.sensorDat[1][-1])+"*"
+        self.Accelz['text'] = str(self.sensorDat[2][-1])+"*"
+
+
+        self.fig2.clf()
+        #Agrega las graficas al contenedor, las dibuja y configura en la pantalla.
+        self.s4 = self.fig2.add_subplot(4, 1, 1, frameon=False).plot([x for x in range(len(self.sensorDat[3]))], self.sensorDat[3], 'b')
+        self.s5 = self.fig2.add_subplot(4, 1, 2, frameon=False).plot([x for x in range(len(self.sensorDat[4]))], self.sensorDat[4], 'r')
+        self.s6 = self.fig2.add_subplot(4, 1, 3, frameon=False).plot([x for x in range(len(self.sensorDat[5]))], self.sensorDat[5], 'g')
+        self.cs2.draw()
+        self.cs2.get_tk_widget().grid(row=0, column=1, rowspan=4, sticky=E)
         
-        self.Gyrox['text'] = str(self.sensor1[-1])+"*"
-        self.Gyroy['text'] = str(self.sensor2[-1])+"*"
-        self.Gyroz['text'] = str(self.sensor3[-1])+"*"
+        self.Gyrox['text'] = str(self.sensorDat[3][-1])+"*"
+        self.Gyroy['text'] = str(self.sensorDat[4][-1])+"*"
+        self.Gyroz['text'] = str(self.sensorDat[5][-1])+"*"
       
 
 root = Tk()
