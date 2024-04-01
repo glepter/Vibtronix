@@ -18,7 +18,7 @@ import csv
 
 
 
-file_name = "output.csv"
+
 ser = serial.Serial(baudrate=115200, timeout=2)
 
 #Creamos clase para Objeto que genera y maneja la UI (Interfaz de Usuario) y su funcionalidad.
@@ -29,11 +29,11 @@ class UI:
         #Crea variable interna para controlar el libro y la hoja de excel.
         #Crea variable interna para Objeto Serial. Crea variable para el root de TKInter y asigna titulo.
         self.ser = ser
-        self.sampleCount = 100
-        self.classID = ["Alto", "Medio", "Bajo", "Auto"]
+        self.sampleCount = 1500
+        self.classID = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15"]
         self.header = ['Instance', 'Class', 'Timestamp', 'Acc X', 'Acc Y', 'Acc Z', 'Gyro X', 'Gyro Y', 'Gyro Z']
         self.sensorDat = [[],[],[],[],[],[]]
-        self.serverAddr = '192.168.100.61'
+        self.serverAddr = '10.0.0.21'
         self.serverPort = 12345
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.server_socket.bind((self.serverAddr, self.serverPort))
@@ -106,9 +106,9 @@ class UI:
         #Crea y define texto y dropdown menu del contador de minutos.
         lsample = Label(self.First, text="Numero de Muestras",font=Font(family='Helvetica', size=13, weight='normal'), highlightthickness=0)
         lsample.grid(row=2, column=0)
-        self.spin = Spinbox(self.First,  from_= 100, to = 1000, increment = 10, wrap = True, width=5, highlightthickness=0, border=0, font=Font(family='Helvetica', size=13, weight='normal'))   
+        self.spin = Spinbox(self.First,  from_= 1000, to = 10000, increment = 10, wrap = True, width=5, highlightthickness=0, border=0, font=Font(family='Helvetica', size=13, weight='normal'))   
         self.spin.delete(0,"end")
-        self.spin.insert(0,100)
+        self.spin.insert(0,1500)
         self.spin.grid(row=2,column=1, sticky=W)
 
         lclassid = Label(self.First, text="Clase: ",font=Font(family='Helvetica', size=13, weight='normal'), highlightthickness=0)
@@ -241,11 +241,12 @@ class UI:
                 self.updateGraph()
                 break
         self.server_socket.close()
-        with open(file_name, mode='w', newline='') as file:
+        self.file_name = "output"+self.spin2.get()+".csv"
+        with open(self.file_name, mode='w', newline='') as file:
             writer = csv.writer(file)
             writer.writerow(self.header) 
             writer.writerows(list) 
-        print(f"CSV file '{file_name}' has been created.")
+        print(f"CSV file '{self.file_name}' has been created.")
         
             
 
